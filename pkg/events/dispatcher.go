@@ -1,6 +1,9 @@
 package events
 
-import "errors"
+import (
+	"errors"
+	"sync"
+)
 
 var ErrHandlerAlreadyRegistered = errors.New("handler already registered")
 var ErrHandlerNotRegistered = errors.New("handler not registered")
@@ -56,9 +59,12 @@ func (d *ConcreteEventDispatcher) Dispatch(event Event) error {
 		return ErrHandlerNotFound
 	}
 
+	wg := &sync.WaitGroup{}
 	for _, handler := range d.handlers[event.Name()] {
-		handler.Handle(event)
+		wg.Add(1)
+		go handler.Handle(event, wg)
 	}
+	wg.Wait()
 	return nil
 }
 
